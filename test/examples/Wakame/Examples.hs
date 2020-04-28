@@ -113,7 +113,7 @@ data Timestamp =
 
 data Person =
   Person
-  { name :: String
+  { name       :: String
   , created_at :: String
   }
   deriving (Eq, Show, Generic)
