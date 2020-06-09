@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 module Wakame.Examples.Usage where
 
@@ -6,7 +7,7 @@ import Prelude
 import Data.Kind
 import Data.Proxy
 import Data.Text (Text)
-import Data.Time (UTCTime)
+import Data.Time (UTCTime, getCurrentTime)
 import GHC.Generics
 import GHC.TypeLits
 import Wakame
@@ -50,3 +51,41 @@ touchUser time user = fromRow $ nub $ union (toRow $ UpdatedAt time) (toRow user
 updateAndTouchUser :: UpdatingUser -> UTCTime -> User -> User
 updateAndTouchUser updating time user =
   fromRow $ nub $ union (toRow updating) $ union (toRow $ UpdatedAt time) (toRow user)
+
+
+data ModelBase =
+  ModelBase
+  { id         :: UserId
+  , created_at :: !UTCTime
+  , updated_at :: !UTCTime
+  }
+  deriving (Eq, Show, Generic)
+
+create ::
+  ( IsRow a
+  , IsRow b
+  , Lacks "id" (Of a)
+  , Union (Of a) (Of ModelBase) attrs
+  , Nub attrs (Of b)
+  ) => a -> IO b
+create x = do
+  now <- getCurrentTime
+  let y =
+        fromRow $ nub
+        $ union (toRow x)
+        $ toRow $ ModelBase (UserId 0) now now
+  pure y
+
+
+update ::
+  ( IsRow a
+  , Union (Of UpdatedAt) (Of a) attrs
+  , Nub attrs (Of a)
+  ) => a -> IO a
+update x = do
+  now <- getCurrentTime
+  let y =
+        fromRow $ nub
+        $ union (toRow $ UpdatedAt now)
+        $ toRow x
+  pure y

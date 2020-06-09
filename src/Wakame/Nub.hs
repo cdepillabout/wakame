@@ -1,8 +1,10 @@
+{-# LANGUAGE UndecidableSuperClasses #-}
 module Wakame.Nub where
 
 import Prelude
 
 import Data.SOP.NP (NP (..))
+import Data.SOP.Constraint (All)
 import Wakame.Row (Row, V)
 
 
@@ -19,22 +21,22 @@ import Wakame.Row (Row, V)
 -- (x: 42.0) :* (x: 56.4) :* Nil
 -- >>> nub $ toRow (keyed @"x" 42.0, keyed @"x" 56.4) :: Row '[ '("x", Double)]
 -- (x: 42.0) :* Nil
-class Nub s t where
+class All (HasField s) t => Nub s t where
   nub :: Row s -> Row t
 
 instance Nub s '[] where
   nub _ = Nil
 
-instance (Nub s t, HasField s k v) => Nub s ('(k, v) ': t) where
+instance (Nub s t, HasField s p) => Nub s (p ': t) where
   nub x = getField x :* nub x
 
 
 -- | Typeclass to pick a first matched field
-class HasField r k v where
-  getField :: Row r -> V '(k, v)
+class HasField r p where
+  getField :: Row r -> V p
 
-instance {-# OVERLAPS #-} HasField ('(k, v) ': rs) k v where
+instance {-# OVERLAPS #-} HasField (p ': rs) p where
   getField (x :* _) = x
 
-instance HasField rs k v => HasField (r ': rs) k v where
+instance HasField rs p => HasField (r ': rs) p where
   getField (_ :* xs) = getField xs
